@@ -1,5 +1,5 @@
 # ECEN-361 Lab-10: IPC-Examples
-     Student Name:  ___________________________________
+     Student Name:  __________Max Andersen_____________
 
 ## Introduction and Objectives of the Lab
 
@@ -80,12 +80,14 @@ Now make sure to write the code inside of the Semaphore_Toggle_Task function tha
 
 <br>
 1. How did your task ‘wait’ for the debounced button? <br>
-<mark>_______________________________________________________ </mark>
+<mark>Our task waits for the debounce button because the semaphore is released after the debounce occurs.</mark>
 <br>
 <br><br>
 
 2.)	How long is the time between the button interrupt coming in and it being enabled again? <br>
-<mark>_______________________________________________________ </mark>
+<mark>Near line 800 we see the delay is 30 ms
+
+<mark>osDelay(30); </mark>
 ><br>
 > <br>
 
@@ -96,11 +98,11 @@ Now create a second task (semaphore_Toggle_D3) -- <p>
 
 
 3.)	Do both of (D4 and D3) toggle with a single button press?  Describe the behavior?  <br>
-<mark>_________________________________________________________________________________<br><br>
+<mark>They do not toggle at the same time with the same button press. D3 turns on on the first press. Then D4 turns on with the second. D3 turns off with the third. D4 turns off with the 4th. This repeats.<br><br>
 
 4.)	Now change one of the priorities of these two tasks, re-compile,  and re-run.
 How has the behavior changed?
-<mark>_________________________________________________________________________________<br><br>
+<mark>I set the priority to toggle D4 low (compared to D3 - Normal). When doing this the button only toggles D3 not D$ because of the priority.<br><br>
 
 
 ## Part 2: Mutexes
@@ -152,12 +154,12 @@ current count. The first two processes are done for you "Mutex_CountDownTask" an
 >
 ><br>
 >7.)	Comment on the Up/Down/ ”—” display that you see.  <br><br>
-><mark>___________________________________________________________________________________________________________<br><br><p>
+><mark>Since count down, dount up, and the dash task are the same priority the 7 segment display is not very consistent. We see the n umber count up and down and dashes at random.<br><br><p>
 
 
 >8.)	Is there a ‘priority’ associated with the Mutex?  If so, how can it be changed?
 ><br>  
-><mark>___________________________________________________________________________________________________________<br><br>
+><mark>I don't think the mutex has a priority, but the tasks have the priority. We can change the priority of the individual tasks. Higher priority gets the mutex.<br><br>
 <p>
 
 ><br>
@@ -165,7 +167,7 @@ current count. The first two processes are done for you "Mutex_CountDownTask" an
 
 >  Change the priority of the Reset to be osPriorityIdle.  This is the lowest priority available. Note that you will not find this priority type listed in the .ioc configuration, as it is intended to be used for idle threads. This priority must be manually set in the code.<br>
 ><br> Did you see any effect on the ability of Button_3 to reset the count?<br><br>
-><mark>___________________________________________________________________________________________________________<br><br>
+><mark>Yes. When we press button 3 it takes longer for the tasks to start competeing. When we press button 3 the number '50' idles longer on the seven segment<br><br>
 >
 ---
 <!--------------------------------------------------------------------------------->
@@ -196,12 +198,12 @@ display digit.
 >
 >10.) This timer was created via the GUI  (.IOC file).  It’s type is *“osTimerPeriodic”* which means it repeats over and over.<br><br>
 What other options can a Software Timer take to change its Type and operation? <br>
-><mark>___________________________________________________________________________________________________________<br><br>
+><mark>The software timer can be periodic or a one shot. When I change the timer to one shot (osTimerOnce) we need to press the button each time for the number to change on the seven segment.<br><br>
 
 >11).	The debounce for the switches here used an osDelay() call (non-blocking).  Is there any advantage to using a SWTimer here instead?<br>
 > Explain why or why not?
 >
-><mark>___________________________________________________________________________________________________________<br><br>
+><mark>Yes there could be a benefit to using a software timer here. When we use a software timer it is a fast interrupt and is nonblocking. It also does not require us to make a task.<br><br>
 
 
 <!--------------------------------------------------------------------------------->
