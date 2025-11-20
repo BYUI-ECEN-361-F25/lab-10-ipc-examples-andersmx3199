@@ -228,7 +228,7 @@ What other options can a Software Timer take to change its Type and operation? <
 >3.	Any other relevant uses for semaphores, mutexes, or S/W timers ?   Describe what you’ve done and why?
 >
 ><mark><br><br>
->Software timers can be either periodic or a oneshot timer. Some common uses for SwTimers can be used for time outs. When communicaating via UART these timers can be useful to time out that communication. 
+>Software timers can be either periodic or a oneshot timer. Some common uses for SwTimers can be used for time outs. When communicaating via UART these timers can be useful to time out that communication.  
 ><br>
 
 
