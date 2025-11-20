@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+/*Comment
 /**
   ******************************************************************************
   * @file           : main.c
@@ -97,12 +98,40 @@ osThreadId_t ResetGlobalHandle;
 const osThreadAttr_t ResetGlobal_attributes = {
   .name = "ResetGlobal",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityIdle,
 };
 /* Definitions for DebounceTask */
 osThreadId_t DebounceTaskHandle;
 const osThreadAttr_t DebounceTask_attributes = {
   .name = "DebounceTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for SemaphoreToggle */
+osThreadId_t SemaphoreToggleHandle;
+const osThreadAttr_t SemaphoreToggle_attributes = {
+  .name = "SemaphoreToggle",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Button1Task */
+osThreadId_t Button1TaskHandle;
+const osThreadAttr_t Button1Task_attributes = {
+  .name = "Button1Task",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for ToggleD3 */
+osThreadId_t ToggleD3Handle;
+const osThreadAttr_t ToggleD3_attributes = {
+  .name = "ToggleD3",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Mutex_AddDash */
+osThreadId_t Mutex_AddDashHandle;
+const osThreadAttr_t Mutex_AddDash_attributes = {
+  .name = "Mutex_AddDash",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -115,6 +144,11 @@ const osTimerAttr_t SW_Timer_7Seg_attributes = {
 osMutexId_t UpDownMutexHandle;
 const osMutexAttr_t UpDownMutex_attributes = {
   .name = "UpDownMutex"
+};
+/* Definitions for myMutex02 */
+osMutexId_t myMutex02Handle;
+const osMutexAttr_t myMutex02_attributes = {
+  .name = "myMutex02"
 };
 /* Definitions for Button_1_Semaphore */
 osSemaphoreId_t Button_1_SemaphoreHandle;
@@ -148,7 +182,7 @@ uint8_t countdown_display = 9;
  */
 #define Protected_Count_Initial_Value 50
 uint8_t mutex_protected_count = Protected_Count_Initial_Value ;
-
+osSemaphoreId_t button_1_semaphore;
 
 /* USER CODE END PV */
 
@@ -165,6 +199,10 @@ void Mutex_CountDownTask(void *argument);
 void UpdateGlobDisplayProcess(void *argument);
 void ResetGlobalTask(void *argument);
 void StartDebounce(void *argument);
+void Semaphore_Toggle_Task(void *argument);
+void StartButton1Task(void *argument);
+void semaphore_Toggle_D3(void *argument);
+void Mutex_Add_Dash_Task(void *argument);
 void SW_Timer_Countdown(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -182,7 +220,6 @@ void SW_Timer_Countdown(void *argument);
   */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -223,6 +260,9 @@ int main(void)
   /* creation of UpDownMutex */
   UpDownMutexHandle = osMutexNew(&UpDownMutex_attributes);
 
+  /* creation of myMutex02 */
+  myMutex02Handle = osMutexNew(&myMutex02_attributes);
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -246,7 +286,7 @@ int main(void)
 
   /* Create the timer(s) */
   /* creation of SW_Timer_7Seg */
-  SW_Timer_7SegHandle = osTimerNew(SW_Timer_Countdown, osTimerPeriodic, NULL, &SW_Timer_7Seg_attributes);
+  SW_Timer_7SegHandle = osTimerNew(SW_Timer_Countdown, osTimerOnce, NULL, &SW_Timer_7Seg_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -281,6 +321,18 @@ int main(void)
   /* creation of DebounceTask */
   DebounceTaskHandle = osThreadNew(StartDebounce, NULL, &DebounceTask_attributes);
 
+  /* creation of SemaphoreToggle */
+  SemaphoreToggleHandle = osThreadNew(Semaphore_Toggle_Task, NULL, &SemaphoreToggle_attributes);
+
+  /* creation of Button1Task */
+  Button1TaskHandle = osThreadNew(StartButton1Task, NULL, &Button1Task_attributes);
+
+  /* creation of ToggleD3 */
+  ToggleD3Handle = osThreadNew(semaphore_Toggle_D3, NULL, &ToggleD3_attributes);
+
+  /* creation of Mutex_AddDash */
+  Mutex_AddDashHandle = osThreadNew(Mutex_Add_Dash_Task, NULL, &Mutex_AddDash_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -293,7 +345,6 @@ int main(void)
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -463,11 +514,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : Button_1_Pin Button_2_Pin */
-  GPIO_InitStruct.Pin = Button_1_Pin|Button_2_Pin;
+  /*Configure GPIO pin : Button_1_Pin */
+  GPIO_InitStruct.Pin = Button_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(Button_1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Button_2_Pin */
+  GPIO_InitStruct.Pin = Button_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(Button_2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_D1_Pin LED_D2_Pin LED_D3_Pin */
   GPIO_InitStruct.Pin = LED_D1_Pin|LED_D2_Pin|LED_D3_Pin;
@@ -637,7 +694,7 @@ void SW_Timer_Task(void *argument)
 	if (osTimerIsRunning(SW_Timer_7SegHandle))
 		osTimerStop(SW_Timer_7SegHandle );
 	else
-		osTimerStart(SW_Timer_7SegHandle , 200);
+		osTimerStart(SW_Timer_7SegHandle , 1000);
     osDelay(1);
   }
   /* USER CODE END SW_Timer_Task */
@@ -777,6 +834,98 @@ void StartDebounce(void *argument)
 	     if (buttons_in & B3) { osSemaphoreRelease(Button_3_SemaphoreHandle); }
 	 }
   /* USER CODE END StartDebounce */
+}
+
+/* USER CODE BEGIN Header_Semaphore_Toggle_Task */
+/**
+* @brief Function implementing the SemaphoreToggle thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Semaphore_Toggle_Task */
+void Semaphore_Toggle_Task(void *argument)
+{
+  /* USER CODE BEGIN Semaphore_Toggle_Task */
+  extern osSemaphoreId_t button_1_semaphore; // Ensure the semaphore is declared
+  for (;;)
+  {
+    // Wait for the semaphore to be released
+    if (osSemaphoreAcquire(button_1_semaphore, osWaitForever) == osOK)
+    {
+      // Toggle LED_D4
+      HAL_GPIO_TogglePin(LED_D4_GPIO_Port, LED_D4_Pin);
+    }
+
+    osDelay(1); // Optional delay, adjust as needed
+  }
+  /* USER CODE END Semaphore_Toggle_Task */
+}
+
+/* USER CODE BEGIN Header_StartButton1Task */
+/**
+* @brief Function implementing the Button1Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartButton1Task */
+void StartButton1Task(void *argument)
+{
+  /* USER CODE BEGIN StartButton1Task */
+  /* Infinite loop */
+  for(;;)
+  {
+	  osSemaphoreAcquire(Button_1_SemaphoreHandle, osWaitForever);
+
+	        // Toggle LED D4
+	        HAL_GPIO_TogglePin(LED_D4_GPIO_Port, LED_D4_Pin);
+  }
+  /* USER CODE END StartButton1Task */
+}
+
+/* USER CODE BEGIN Header_semaphore_Toggle_D3 */
+/**
+* @brief Function implementing the ToggleD3 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_semaphore_Toggle_D3 */
+void semaphore_Toggle_D3(void *argument)
+{
+  /* USER CODE BEGIN semaphore_Toggle_D3 */
+  /* Infinite loop */
+	for(;;)
+	  {
+		  osSemaphoreAcquire(Button_1_SemaphoreHandle, osWaitForever);
+
+		        // Toggle LED D3
+		        HAL_GPIO_TogglePin(LED_D3_GPIO_Port, LED_D3_Pin);
+	  }
+  /* USER CODE END semaphore_Toggle_D3 */
+}
+
+/* USER CODE BEGIN Header_Mutex_Add_Dash_Task */
+/**
+* @brief Function implementing the Mutex_AddDash thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Mutex_Add_Dash_Task */
+void Mutex_Add_Dash_Task(void *argument)
+{
+  /* USER CODE BEGIN Mutex_Add_Dash_Task */
+  /* Infinite loop */
+    for(;;)
+        {
+        /* This doesn't change the value, it just clears the display  */
+        /* If asked to display a negative number, the function displays a "--"
+        */
+        osMutexWait(UpDownMutexHandle,osWaitForever);
+        MultiFunctionShield_Display_Two_Digits(-1);
+        osDelay(200);
+        osMutexRelease(UpDownMutexHandle);
+        osDelay(2);
+        }
+  /* USER CODE END Mutex_Add_Dash_Task */
 }
 
 /* SW_Timer_Countdown function */
